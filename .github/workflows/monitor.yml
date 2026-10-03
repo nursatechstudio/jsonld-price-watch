@@ -1,0 +1,36 @@
+name: Price Watch
+
+on:
+  push:
+    paths:
+      - 'scraper.mjs'
+      - 'targets.json'
+      - '.github/workflows/monitor.yml'
+  schedule:
+    - cron: '20 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Run price watch
+        run: node scraper.mjs
+
+      - name: Commit changed snapshots
+        run: |
+          git config user.name 'lead-kit[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add state.json changes.md changes.json
+          if git diff --cached --quiet; then
+            echo 'No snapshot changes to commit.'
+          else
+            git commit -m "price watch update $(date -u +%F)"
+            git push
+          fi
